@@ -2,11 +2,17 @@ import { NextRequest, NextResponse } from "next/server";
 import { generateBanner, getPredictionStatus, getOutputUrl, BannerGenerationInput } from "@/lib/replicate";
 import { createClient } from "@supabase/supabase-js";
 
-// Create Supabase admin client for server-side operations
-const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
+// Create Supabase admin client lazily to avoid build-time errors
+function getSupabaseAdmin() {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  
+  if (!supabaseUrl || !supabaseKey) {
+    throw new Error("Missing Supabase environment variables. Please configure NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY in Vercel.");
+  }
+  
+  return createClient(supabaseUrl, supabaseKey);
+}
 
 async function downloadAndUploadImage(
   imageUrl: string,
@@ -36,8 +42,11 @@ async function downloadAndUploadImage(
 
   console.log('Uploading to Supabase Storage:', filename);
 
+  // Get Supabase client
+  const supabase = getSupabaseAdmin();
+
   // Upload to Supabase Storage
-  const { error: uploadError } = await supabaseAdmin.storage
+  const { error: uploadError } = await supabase.storage
     .from("banners")
     .upload(filename, imageBuffer, {
       contentType,
@@ -49,7 +58,7 @@ async function downloadAndUploadImage(
   }
 
   // Get public URL
-  const { data: { publicUrl } } = supabaseAdmin.storage
+  const { data: { publicUrl } } = supabase.storage
     .from("banners")
     .getPublicUrl(filename);
 
