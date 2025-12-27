@@ -88,7 +88,7 @@ export default function SignInPage() {
                 <div className="flex items-center justify-between">
                   <Label htmlFor="password">รหัสผ่าน</Label>
                   <Link
-                    href="#"
+                    href="/auth/forgot-password"
                     className="text-xs text-purple-400 hover:text-purple-300"
                   >
                     ลืมรหัสผ่าน?
